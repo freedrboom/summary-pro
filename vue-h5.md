@@ -23,7 +23,7 @@ beforeRouteEnter(to, from, next) {
 - 前面两种对单页应用的破坏性非常大，如此强制刷新不太好,可以用第三种来解决这个问题 vue-router mode由 "history" ==> "hash",
 
 ### 写一个典型的页面的js逻辑
-```
+```javascript
 import { getOrderDetail } from "@/api/freedrb"
 import { Indicator } from "mint-ui"
 import { Toast, resolveTimeout, rejectTimeout } from "@/global"
@@ -33,15 +33,14 @@ export default {
   data() {
     return {
       title: "签到二维码",
-      desc:
-        "长按保存到手机相册 开课现场工作人员扫码 入场即可 (非工作人员扫码无法验证)",
-      contentList: [
-        ["姓名", ""],
-        ["报名课程", ""],
-        ["线下开课时间", ""],
-        ["金额", ""],
-        ["票数", 1]
-      ],
+      desc: "长按保存到手机相册",
+      contentInfo: {
+        realName: "",
+        themeName: "",
+        activityPriceDesc: "",
+        amount: "",
+        qrCodeUrl: ""
+      },
       qrcode: "",
       showWeixin: false
     }
@@ -49,6 +48,7 @@ export default {
   components:{
     weixin
   },
+  mixins:[], // 局部的mixins
   methods: {
     goBack() {
       if (!this.fromName || this.fromName === "pre-order") {
@@ -58,59 +58,43 @@ export default {
       }
     },
     setOrderInfo(orderDetail){
-       let {
-            realName,
-            themeName,
-            activityAddress,
-            activityStartTime,
-            activityEndTime,
-            activityPriceDesc,
-            amount,
-            qrCodeUrl
-          } = orderDetail
-          this.contentList[0][1] = realName
-          this.contentList[1][1] = themeName
-          this.contentList[2][1] = `${activityAddress}<${activityStartTime}-${activityEndTime}>`
-          this.contentList[3][1] = activityPriceDesc
-          this.contentList[4][1] = amount
-          this.qrcode = qrCodeUrl
-          this.showWeixin = Number(orderDetail.subscibeWechat) === 0;
+      Object.assign(this.contentInfo, OrderDetail)
+      this.showWeixin = Number(OrderDetail.subscibeWechat) === 0;
     },
     hidenWeixin(){
       this.showWeixin = false
     },
-    fetchOrderInfo() {
+    fetchAllData() {
     }
   },
   mounted() {
-    this.fetchOrderInfo()
+    this.fetchAllData()
   },
-  computed: {},
-  beforeRouteEnter(to, from, next) {
-    let { orderNo } = {
-      ...to.params,
-      ...to.query
-    }
+  computed: { // 计算属性
+    
+  },
+  activated(){ // 对于路由 keepA-alive之后的 页面再次进入（激活）的时候触发的生命周期，可以刷新数据，对应的生命周期为deactivated
+
+  },
+  beforeRouteEnter(to, from, next) { // 来源的，参数的验证，甚至进入页面前可以先去请求数据，请求到需要的数据之后才next()
+    let { orderNo } = {...to.params, ...to.query } // 对于相同的参数用query去覆盖params里的参数（主要是有参数可以直接修改url,好覆盖，能直接覆盖，方便调试 ^_^）
     // 首页判断参数是否合法
     if (orderNo) {  // 参数合法
-       Indicator.open({
-          text: "查询中...",
-          spinnerType: "snake"
-        }) // loading
+      Indicator.open({ text: "查询中...", spinnerType: "snake" }) // loading
       Promise.all[getOrderDetail({ orderNo }), resolveTimeout(1)]// 至少延迟一秒，防止请求过快 loading 一闪秒消失
         .then([orderDetail,] => {  // 请求成功,进入页面
-         next(vm => {
-        vm.fromName = from.name || "" // 保存来源路由
-        vm.setOrderInfo(orderDetail) // 设置数据
-        Indicator.close()
-      })
+          next(vm => {
+            vm.fromName = from.name || "" // 保存来源路由
+            vm.setOrderInfo(orderDetail) // 设置数据
+          })
         })
         .catch(err => {     // 请求失败
-          Indicator.close()
           Toast(err)
           if(!from.name){ // 没有前一个路由 直接进来的， 跳到首页
             next({name: "home", replace: true})
           } // 否则只提示，啥都不做
+        }).finally(res => {
+          Indicator.close()
         })
     } else {
         Toast("参数错误，请重试")
@@ -119,13 +103,16 @@ export default {
         } // 否则只提示，啥都不做
     }
   },
-  beforeRouteLeave(to, from, next) {
-  if ((!this.fromName || this.fromName === "pre-order") && to.name!=="mineOrder") { // 对于当前页面，如果是直接进来或者从支付页面过来，不该返回上一个页面，而是回到订单列表
-        this.$router.replace({ name: "mineOrder"})
-      } else {
-        next()
-      }
-  }
+  beforeRouteLeave(to, from, next) { // 离开路由前 可以做些清理
+    /*
+    if ((!this.fromName || this.fromName === "pre-order") && to.name!=="mineOrder") { // 对于当前页面，如果是直接进来或者从支付页面过来，不该返回上一个页面，而是回到订单列表
+          this.$router.replace({ name: "mineOrder"})
+        } else {
+          next()
+        }
+    }
+  */
+  next()
 }
 
 ```
