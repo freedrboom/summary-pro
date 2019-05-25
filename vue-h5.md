@@ -48,8 +48,8 @@ export default {
   components:{
     weixin
   },
-  mixins:[], // 局部的mixins
-  methods: {
+  mixins:[], // 局部的mixins的混入
+  methods: { // 方法
     goBack() {
       if (!this.fromName || this.fromName === "pre-order") {
         this.$router.push({ name: "mineOrder" })
@@ -73,6 +73,9 @@ export default {
   computed: { // 计算属性
     
   },
+  deactivated() {// 可以用来清理些资源或者重置一些标志位
+
+  }
   activated(){ // 对于路由 keepA-alive之后的 页面再次进入（激活）的时候触发的生命周期，可以刷新数据，对应的生命周期为deactivated
 
   },
