@@ -445,3 +445,196 @@ export const shouldLoginMixin = {
   }
 }
 ```
+
+### store里就是vux数据
+
+#### 一个store如下所示
+```javascript
+import { getUserNoticeRecordCount } from '@/api'
+export default {
+    namespaced: true, // 是否以模块来用
+    state: { // state
+        unReadMessageCount: 0
+    },
+    mutations: { // commit　－－　同步操作方法
+       setCount(state, num) {
+            state.unReadMessageCount = num || 0
+       }
+    },
+    actions: { // dispatch -- 异步操作方法
+        fetchUserNoticeRecordCount({ state, dispatch, commit }) {
+            return getUserNoticeRecordCount().then(res => {
+                commit('setCount', res)
+                return res
+            })
+        }
+    },
+    getters: { // like computed
+        unReadMessageCount(state) { // 有些属性太长，可以定义getters　好比 computed属性一样
+            return state.unReadMessageCount
+        }
+    }
+}
+```
+
+这是这些store自动导入的代码
+```javascript
+const files = require.context('./modules', false, /\.js$/)
+const modules = {}
+
+files.keys().forEach(key => {
+  modules[key.replace(/(\.\/|\.js)/g, '')] = files(key).default
+})
+
+export default {
+  namespaced: true,
+  modules
+}
+```
+
+### webpack 打包常用工具
+#### DefinePlugin
+编译的时候注入一些全局性的常量（值）,可以全局拿到的用来根据注入的不同判断环境（生产环境或开发环境）
+new webpack.DefinePlugin({
+  PRODUCTION: JSON.stringify(true),
+  VERSION: JSON.stringify("5fa3b9"),
+  BROWSER_SUPPORTS_HTML5: true,
+  TWO: "1+1",
+  "typeof window": JSON.stringify("object")
+})
+
+### uglifyjs-webpack-plugin
+用来混淆js以及过滤些无用的（注释，ｌｏｇ,debugger)
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
+ new UglifyJsPlugin({
+      uglifyOptions: {
+        comments: false,
+        compress: {
+          warnings: false
+        }
+      },
+      sourceMap: productionSourceMap,
+      parallel: true
+    }),
+### extract-text-webpack-plugin
+抽离css样式到单独的文件,防止将样式打包在js中引起页面样式加载错乱的现象
+const ExtractTextPlugin = require('extract-text-webpack-plugin')
+  new ExtractTextPlugin({
+    filename: utils.assetsPath('css/[name].[contenthash].css'),
+    allChunks: true
+  })
+
+  ### optimize-css-assets-webpack-plugin
+  压缩css
+  const OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin')
+   new OptimizeCSSPlugin({
+      cssProcessorOptions: productionSourceMap
+        ? { safe: true, autoprefixer: false, map: { inline: false } }
+        : { safe: true, autoprefixer: false }
+    }),
+
+### html-webpack-plugin
+
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+    new HtmlWebpackPlugin({
+      filename: config.build.index, // 生成的html文件名
+      template: 'index.html',　//所使用的模板
+      inject: true, // script注入的位置
+      isProd: true,
+      minify: { //　对html压缩的配置
+        removeComments: true,
+        collapseWhitespace: true,
+        removeAttributeQuotes: true
+      },
+      chunksSortMode: 'dependency', //注入　script的顺序
+      serviceWorkerLoader: cdn　// 其他的一些变量（可以在模板里使用的变量，比如这里注入了几个ｃｄｎ引入的script
+    })
+
+    ## 打包提取公共代码部分
+
+      new webpack.HashedModuleIdsPlugin(),
+    // enable scope hoisting
+    new webpack.optimize.ModuleConcatenationPlugin(),
+    // split vendor js into its own file
+    new webpack.optimize.CommonsChunkPlugin({
+      name: 'vendor',
+      minChunks(module) { // node_modules里js单独打包，以及node_modules里的css和静态导入的ｃｓｓ单独打包
+        let { resource } = module || {}
+        // any required modules inside node_modules are extracted to vendor
+        return (
+          (resource &&/\.js$/.test(resource) && resource.indexOf(path.join(__dirname, '../node_modules')) === 0) 
+          || 
+           (/\.css$/.test(resource) || (resource &&resource.indexOf(path.join(__dirname, '../node_modules')) === 0) // 引入的css以及在node_modules里的单独打包
+           )
+        )
+      }
+    }),
+    new webpack.optimize.CommonsChunkPlugin({
+      name: 'manifest',
+      minChunks: Infinity
+    }),
+    new webpack.optimize.CommonsChunkPlugin({
+      name: 'app',
+      async: 'vendor-async',
+      children: true,
+      minChunks: 2
+    }),
+  
+### copy-webpack-plugin　静态资源的拷贝
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+new CopyWebpackPlugin([
+// {
+//   from: path.resolve(__dirname, '../static'),
+//   to: `${config.build.assetsRoot}`,
+//   ignore: ['*.txt']
+// },
+{
+  context: path.resolve(__dirname, '../static'),
+  from: '*',
+  to: config.build.assetsSubDirectory,
+},
+// {
+//   from: path.resolve(__dirname, '../active'),
+//   to: `${config.build.assetsSubDirectory}/active`,
+//   ignore: ['.*']
+// },
+])
+
+### 打包之后的文件压缩
+  const CompressionWebpackPlugin = require('compression-webpack-plugin')
+
+  const BrotliPlugin = require('brotli-webpack-plugin');  // brotli-gzip-webpack-plugin
+  webpackConfig.plugins.push(
+    new BrotliPlugin({
+      asset: '[path].br[query]',
+      test: new RegExp(
+        '\\.(' +
+        config.build.productionGzipExtensions.join('|') +
+        ')$'
+      ),
+      threshold: 10240,
+      minRatio: 0.8
+    })
+  )
+
+  webpackConfig.plugins.push(
+    new CompressionWebpackPlugin({
+      filename: '[path].gz[query]',
+      algorithm: 'gzip',
+      test: new RegExp('\\.(' + config.build.productionGzipExtensions.join('|') + ')$'),
+      threshold: 10240,
+      minRatio: 0.8
+    })
+  )
+
+  ### webpack-bundle-analyzer
+打包文件依赖关系的分析(生成报告)
+  const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
+  webpackConfig.plugins.push(new BundleAnalyzerPlugin())
+
+  ### 优化（减小必要资源大小，减少不必要的请求）
+- webpack打包提取公共的代码（包括ｊｓ和css）, 一些不变的依赖直接cdn引入（vue vue-router xuex axios), 将常用的css　单独以类名的形式单独写出来　变成全局的样式, 一些ui库之类的按需引入；将node_modules里的依赖单独打包；
+- 开启压缩混淆去掉注释（代码里估计有不少注释)
+- 开启gzip，br(需要在https下，但压缩率更高--比gzip高１７％左右)
+- vue 的依赖直接用runtime版本，vue代码通过webpack的load转后已经变成render函数了无需vue去编译template　gzip之后能少个10k
+- 注意代码书写（高校、简洁），主要是合理处理异步请求，通过[local/session]Storage，内存(vuex)等存储，减少没必要的异步请求，没有先手顺序的异步合并（至少不要强行顺序依赖）
