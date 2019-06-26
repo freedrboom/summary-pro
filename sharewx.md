@@ -140,6 +140,7 @@ export const shareMixin = {
       if (isWX()) {
         return
       }
+      
       const { path = '/home', meta: { shareInfo: { paramsKey = [], sharePath = path, ...others } = { } } = {} } = to
       let referrer = window.localStorage.getItem('userId') || ""
       let shareParams = { referrer }
@@ -151,8 +152,13 @@ export const shareMixin = {
         }, {}) // 加需要附近的参数key value附加上去
         Object.assign(shareParams, paramsObj)
       }
+
+
       let shareParamsStr = Object.entries(shareParams).map(([key, value]) => value !== '' ? `${key}=${value}` : '').join('&')
-      let link = `${window.location.origin}${sharePath}?${shareParamsStr}`
+      if(sharePath.startsWith('/')) { // 如果是相对路径的分享那就加上window.location.origin
+        sharePath = `${window.location.origin}${sharePath}`
+      }
+      let link = `${sharePath}?${shareParamsStr}`
       let shareData = Promise.resolve({ ...others }) // 构造一个空的Promsie
 
       if (vm.shareDataPromise) {
