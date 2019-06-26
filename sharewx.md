@@ -25,11 +25,11 @@ import { isWX, isIos } from './tools'
 const wxShare = (param) => {
     let referrer = window.localStorage.getItem('userId') || "";
     let {
-        title = "微商夜大",
-        desc = "微商夜大让微商创业再也没有秘密",
+        title = "sdfsf",
+        desc = "dd",
         link = `${window.location.origin}/home?referrer=${referrer}`,
         type = "link",
-        imgUrl = "http://chuang-saas.oss-cn-hangzhou.aliyuncs.com/upload/image/20180906/6929b166cdef4903ab15958fe7d0f784.jpg",
+        imgUrl = "http://sdfsf.com/upload/image/20180906/6929b166cdef4903ab15958fe7d0f784.jpg",
         success = () => {},
         cancel = () => {}
     } = param || {}
@@ -140,7 +140,7 @@ export const shareMixin = {
       if (isWX()) {
         return
       }
-      
+
       const { path = '/home', meta: { shareInfo: { paramsKey = [], sharePath = path, ...others } = { } } = {} } = to
       let referrer = window.localStorage.getItem('userId') || ""
       let shareParams = { referrer }
