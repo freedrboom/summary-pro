@@ -129,6 +129,7 @@ server {
 
 
 con/test.conf 内容如下
+```
 server {
     listen      80;
     server_name h2.freedrb.design;
@@ -138,9 +139,9 @@ server {
     include gzip.conf; # gzip
     include brotli.conf; #brotli
 
-    location /api {
+    location /api { # 将/api的请求分离并转到真实的后端
         include  uwsgi_params;
-        proxy_pass http://tsales.xc2018.com.cn; #代理，可以不让它跨域
+        proxy_pass http://test.xxx.cn; #代理，后端真实的请求地址，　可以不让它跨域
     }
 
     location ~ (index.html|service-worker.js|manifest.json)$ {
@@ -155,4 +156,4 @@ server {
     }
     include ssl.conf;
 }
-
+```
