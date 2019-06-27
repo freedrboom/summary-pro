@@ -28,14 +28,15 @@
 >\# git clone gitolite:gitolite-admin
 
 或者直接通过clone, 但我配私钥来，主要是处于安全考虑，服务器的ssh 没允许密码登录，只能通过私钥来连接
->\# git clone gitolite@server:gitolite-admin
-weigu@weigu-pc ~> git clone gitolite:gitolite-admin
-Cloning into 'gitolite-admin'...
-remote: Enumerating objects: 6, done.
-remote: Counting objects: 100% (6/6), done.
-remote: Compressing objects: 100% (4/4), done.
-remote: Total 6 (delta 0), reused 0 (delta 0)
-Receiving objects: 100% (6/6), done.
+>
+    # git clone gitolite@server:gitolite-admin
+    weigu@weigu-pc ~> git clone gitolite:gitolite-admin
+    Cloning into 'gitolite-admin'...
+    remote: Enumerating objects: 6, done.
+    remote: Counting objects: 100% (6/6), done.
+    remote: Compressing objects: 100% (4/4), done.
+    remote: Total 6 (delta 0), reused 0 (delta 0)
+    Receiving objects: 100% (6/6), done.
 
 到gitolite-admin去添加仓库
 >\# cd gitolite-admin

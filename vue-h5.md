@@ -1,26 +1,3 @@
-### 微信ios对于图片长安出不来识别二维码问题
-有很多问题能导致这个，比如position: absolute;
-#### 解决方案
-- 用 window.location.herf来代替this.$router.push 跳转
-```
-    window.location.href = `/share?themeId=${this.productId.themeId}`
-    this.$router.push({name:"share",query:{themeId:this.productId.themeId}})
-```
-- 在对应的页面加个路由处理
-```
-beforeRouteEnter(to, from, next) {
-    const location = global.location;
-    const u = navigator.userAgent;
-    let isiOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/); // ios终端
-    if (isiOS && to.path !== location.pathname) {
-        // 此处不能使用location.replace
-        location.assign(to.fullPath)
-    } else {
-        next()
-    }
-}
-```
-- 前面两种对单页应用的破坏性非常大，如此强制刷新不太好,可以用第三种来解决这个问题 vue-router mode由 "history" ==> "hash",
 
 ### 写一个典型的页面的js逻辑
 ```javascript

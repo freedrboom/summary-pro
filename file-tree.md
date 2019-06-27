@@ -24,19 +24,20 @@
 
 
 ### api 目录
- > tree -L 2 src/api
-src/api // 对于多人开发的，每个人都建个目录 或者以项目来功能来分目录，主要是为了减少多人对同一个文件（甚至同一段代码编辑），每个目录再有个index来统一导出
+ > 
+    tree -L 2 src/api
+    src/api // 对于多人开发的，每个人都建个目录 或者以项目来功能来分目录，主要是为了减少多人对同一个文件（甚至同一段代码编辑），每个目录再有个index来统一导出
+>
+    ├── index.js //统一导出
+    ├── freedrb 
+    │   └── index.js
+    └── yf-api
+        └── index.js
 
-├── index.js //统一导出
-├── freedrb 
-│   └── index.js
-└── yf-api
-    └── index.js
-
-2 directories, 3 files
+    2 directories, 3 files
 
 freedrb/index.js
-
+```javascript
 import { axios, getObject, phoneValidate, MyError, getUserInfo, setUserInfo } from '@/global';
 /**
  * @description 获取我的订单（预估收益）列表
@@ -60,7 +61,7 @@ export const getAllCardOrderList = ({
     });
 };
 
-
+```
 // 为了防止同一个接口在多处调用，或者Promise.all()的时候，还需重复判断http状态码以及业务状态码 此处导出的api调用函数  保证.then的回调里是成功的，与后端商定的状态吗啥的以及在axios拦截做好了  也就是 在页面里  .then 的回调保证 以及正确的调用接口了  无需再.then的回调里再判断状态码，.catch的回调就是表示该业务接口调用失败了
 
 
@@ -79,7 +80,7 @@ src/components/
 
 某一个组件的简单例子
 ss.vue
-
+``` javascript
 <!--组件-->
 <template>
 
@@ -140,9 +141,9 @@ export default {
   },
 }
 </script>
-
+```
 其中在index.js遍历该组件目录，动态全局注册组件
-
+```javascript
 import Vue from 'vue'
 const files = require.context('.', true, /\.vue$/)
 
@@ -150,13 +151,13 @@ files.keys().forEach(key => {
     let component = files(key).default
     Vue.component(component.name, component)
 })
-
+```
 
 ### conf里放些配置性的静态内容,或者声明
 
 
 ### directives 这里主要是自定义了一个下拉刷新的指令，并在directives/index.js里注册为全局下拉刷新
-
+```javascript
 export default (() => {
     var style=document.createElement("style");
     style.setAttribute("type", "text/css");
@@ -374,14 +375,15 @@ export default (() => {
           }
       };
   })();
-
+```
 ### filters 自已过滤？还是转换？ 主要给某一数据转换下
-weigu@weigu-pc ~/D/sales-system> tree -L 2 src/filters/
-src/filters/
-├── dateformat.js
-└── index.js
+>
+    # tree -L 2 src/filters/
+    src/filters/
+    ├── dateformat.js
+    └── index.js
 
-0 directories, 2 files
+    0 directories, 2 files
 
 比如在当前项目里主要是要到了 时间格式化的，手机号码中间部分变成****的 以及 钱的单位格式化  比如前面统一加￥之类的，以及项目的一些 类似于等级（数字）映射成待显示的等级
 
@@ -495,6 +497,7 @@ export default {
 ### webpack 打包常用工具
 #### DefinePlugin
 编译的时候注入一些全局性的常量（值）,可以全局拿到的用来根据注入的不同判断环境（生产环境或开发环境）
+```javascript
 new webpack.DefinePlugin({
   PRODUCTION: JSON.stringify(true),
   VERSION: JSON.stringify("5fa3b9"),
@@ -503,8 +506,8 @@ new webpack.DefinePlugin({
   "typeof window": JSON.stringify("object")
 })
 
-### uglifyjs-webpack-plugin
-用来混淆js以及过滤些无用的（注释，ｌｏｇ,debugger)
+// uglifyjs-webpack-plugin
+// 用来混淆js以及过滤些无用的（注释，ｌｏｇ,debugger)
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
  new UglifyJsPlugin({
       uglifyOptions: {
@@ -516,16 +519,16 @@ const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
       sourceMap: productionSourceMap,
       parallel: true
     }),
-### extract-text-webpack-plugin
-抽离css样式到单独的文件,防止将样式打包在js中引起页面样式加载错乱的现象
+// extract-text-webpack-plugin
+// 抽离css样式到单独的文件,防止将样式打包在js中引起页面样式加载错乱的现象
 const ExtractTextPlugin = require('extract-text-webpack-plugin')
   new ExtractTextPlugin({
     filename: utils.assetsPath('css/[name].[contenthash].css'),
     allChunks: true
   })
 
-  ### optimize-css-assets-webpack-plugin
-  压缩css
+  // optimize-css-assets-webpack-plugin
+  // 压缩css
   const OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin')
    new OptimizeCSSPlugin({
       cssProcessorOptions: productionSourceMap
@@ -533,7 +536,7 @@ const ExtractTextPlugin = require('extract-text-webpack-plugin')
         : { safe: true, autoprefixer: false }
     }),
 
-### html-webpack-plugin
+// html-webpack-plugin
 
 const HtmlWebpackPlugin = require('html-webpack-plugin')
     new HtmlWebpackPlugin({
@@ -550,7 +553,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
       serviceWorkerLoader: cdn　// 其他的一些变量（可以在模板里使用的变量，比如这里注入了几个ｃｄｎ引入的script
     })
 
-    ## 打包提取公共代码部分
+    // 打包提取公共代码部分
 
       new webpack.HashedModuleIdsPlugin(),
     // enable scope hoisting
@@ -580,7 +583,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
       minChunks: 2
     }),
   
-### copy-webpack-plugin　静态资源的拷贝
+// copy-webpack-plugin　静态资源的拷贝
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 new CopyWebpackPlugin([
 // {
@@ -600,7 +603,7 @@ new CopyWebpackPlugin([
 // },
 ])
 
-### 打包之后的文件压缩
+// 打包之后的文件压缩
   const CompressionWebpackPlugin = require('compression-webpack-plugin')
 
   const BrotliPlugin = require('brotli-webpack-plugin');  // brotli-gzip-webpack-plugin
@@ -627,12 +630,13 @@ new CopyWebpackPlugin([
     })
   )
 
-  ### webpack-bundle-analyzer
-打包文件依赖关系的分析(生成报告)
+ // webpack-bundle-analyzer
+// 打包文件依赖关系的分析(生成报告)
   const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
   webpackConfig.plugins.push(new BundleAnalyzerPlugin())
+```
 
-  ### 优化（减小必要资源大小，减少不必要的请求）
+### 优化（减小必要资源大小，减少不必要的请求）
 - webpack打包提取公共的代码（包括ｊｓ和css）, 一些不变的依赖直接cdn引入（vue vue-router xuex axios), 将常用的css　单独以类名的形式单独写出来　变成全局的样式, 一些ui库之类的按需引入；将node_modules里的依赖单独打包；
 - 开启压缩混淆去掉注释（代码里估计有不少注释)
 - 开启gzip，br(需要在https下，但压缩率更高--比gzip高１７％左右)
