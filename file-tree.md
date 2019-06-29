@@ -603,7 +603,16 @@ new CopyWebpackPlugin([
 // },
 ])
 
-// 打包之后的文件压缩
+// zopfli-webpack-plugin , 这个插件gz和br都可以
+// var ZopfliPlugin = require("zopfli-webpack-plugin");
+//  new ZopfliPlugin({
+//             asset: "[path].gz[query]",
+//             algorithm: "zopfli",
+//             test: /\.(js|html)$/,
+//             threshold: 10240,
+//             minRatio: 0.8
+//         })
+// 打包之后的文件压缩 zopfli-webpack-plugin 和 compression-webpack-plugin 选一个
   const CompressionWebpackPlugin = require('compression-webpack-plugin')
 
   const BrotliPlugin = require('brotli-webpack-plugin');  // brotli-gzip-webpack-plugin
