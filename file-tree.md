@@ -447,6 +447,105 @@ export const shouldLoginMixin = {
   }
 }
 ```
+### pages
+写一个典型的页面的js逻辑
+```javascript
+import { getOrderDetail } from "@/api/freedrb"
+import { Indicator } from "mint-ui"
+import { Toast, resolveTimeout, rejectTimeout } from "@/global"
+import weixin from "../Official-Accounts"
+export default {
+  name: "order-result",
+  data() {
+    return {
+      title: "签到二维码",
+      desc: "长按保存到手机相册",
+      contentInfo: {
+        realName: "",
+        themeName: "",
+        activityPriceDesc: "",
+        amount: "",
+        qrCodeUrl: ""
+      },
+      qrcode: "",
+      showWeixin: false
+    }
+  },
+  components:{
+    weixin
+  },
+  mixins:[], // 局部的mixins的混入
+  methods: { // 方法
+    goBack() {
+      if (!this.fromName || this.fromName === "pre-order") {
+        this.$router.push({ name: "mineOrder" })
+      } else {
+        this.$router.go(-1)
+      }
+    },
+    setOrderInfo(orderDetail){
+      Object.assign(this.contentInfo, OrderDetail)
+      this.showWeixin = Number(OrderDetail.subscibeWechat) === 0;
+    },
+    hidenWeixin(){
+      this.showWeixin = false
+    },
+    fetchAllData() {
+    }
+  },
+  mounted() {
+    this.fetchAllData()
+  },
+  computed: { // 计算属性
+    
+  },
+  deactivated() {// 可以用来清理些资源或者重置一些标志位
+
+  }
+  activated(){ // 对于路由 keepA-alive之后的 页面再次进入（激活）的时候触发的生命周期，可以刷新数据，对应的生命周期为deactivated
+
+  },
+  beforeRouteEnter(to, from, next) { // 来源的，参数的验证，甚至进入页面前可以先去请求数据，请求到需要的数据之后才next()
+    let { orderNo } = {...to.params, ...to.query } // 对于相同的参数用query去覆盖params里的参数（主要是有参数可以直接修改url,好覆盖，能直接覆盖，方便调试 ^_^）
+    // 首页判断参数是否合法
+    if (orderNo) {  // 参数合法
+      Indicator.open({ text: "查询中...", spinnerType: "snake" }) // loading
+      Promise.all[getOrderDetail({ orderNo }), resolveTimeout(1)]// 至少延迟一秒，防止请求过快 loading 一闪秒消失
+        .then([orderDetail,] => {  // 请求成功,进入页面
+          next(vm => {
+            vm.fromName = from.name || "" // 保存来源路由
+            vm.setOrderInfo(orderDetail) // 设置数据
+          })
+        })
+        .catch(err => {     // 请求失败
+          Toast(err)
+          if(!from.name){ // 没有前一个路由 直接进来的， 跳到首页
+            next({name: "home", replace: true})
+          } // 否则只提示，啥都不做
+        }).finally(res => {
+          Indicator.close()
+        })
+    } else {
+        Toast("参数错误，请重试")
+        if(!from.name){ // 没有前一个路由（直接进来）,跳到首页
+            next({name: "home", replace: true})
+        } // 否则只提示，啥都不做
+    }
+  },
+  beforeRouteLeave(to, from, next) { // 离开路由前 可以做些清理
+    /*
+    if ((!this.fromName || this.fromName === "pre-order") && to.name!=="mineOrder") { // 对于当前页面，如果是直接进来或者从支付页面过来，不该返回上一个页面，而是回到订单列表
+          this.$router.replace({ name: "mineOrder"})
+        } else {
+          next()
+        }
+    }
+  */
+  next()
+}
+
+```
+### router
 
 ### store里就是vux数据
 
@@ -648,6 +747,8 @@ new CopyWebpackPlugin([
 ### 优化（减小必要资源大小，减少不必要的请求）
 - webpack打包提取公共的代码（包括ｊｓ和css）, 一些不变的依赖直接cdn引入（vue vue-router xuex axios), 将常用的css　单独以类名的形式单独写出来　变成全局的样式, 一些ui库之类的按需引入；将node_modules里的依赖单独打包；
 - 开启压缩混淆去掉注释（代码里估计有不少注释)
-- 开启gzip，br(需要在https下，但压缩率更高--比gzip高１７％左右)
+- 开启gzip，br(需要在https下，但压缩率更高--比gzip高17％左右)
 - vue 的依赖直接用runtime版本，vue代码通过webpack的load转后已经变成render函数了无需vue去编译template　gzip之后能少个10k
+- 路由懒加载( component: () => /* 对应组件 */import("@/pageView/login/login"))
+- pwa
 - 注意代码书写（高校、简洁），主要是合理处理异步请求，通过[local/session]Storage，内存(vuex)等存储，减少没必要的异步请求，没有先手顺序的异步合并（至少不要强行顺序依赖）
