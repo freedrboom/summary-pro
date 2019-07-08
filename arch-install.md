@@ -77,7 +77,7 @@ passwd freedrb
 
 用新增的账号登录
 添加下arch的源
-sudo vim /etc/pacman.conf
+> \#sudo vim /etc/pacman.conf
 [archlinuxcn]
 #The Chinese Arch Linux communities packages.
 SigLevel = Optional TrustAll
