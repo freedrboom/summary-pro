@@ -546,7 +546,164 @@ export default {
 
 ```
 ### router
+#### 全局钩子函数
+```javascript
+export const setRedirectRouter = (router) => {// 设置重定向页面，用来处理登录前强制跳转登录的情况,等登录完成后可以跳回来，或者记录路由跳转记录（用户行为分析)
+  let redirectRoute = ''
+  let { name, query, params } = Router.currentRoute;
+  if (router) {
+      if (typeof router === 'object') {
+        ({ name, query, params } = router);
+          redirectRoute = JSON.stringify({name, query, params})
+      } else {
+          redirectRoute = router
+      }
+  } else if (name) { // 如果有当前的路由就将当前路由取出来
+      redirectRoute = JSON.stringify({name, query, params})
+  } else { // 没有就直接保存当前页面的路径
+      redirectRoute = location.href.substr(location.origin.length)
+  }
 
+  localStorage.redirectRoute = redirectRoute
+  /* 
+  // 后面可以在登录成功之后恢复
+  let redirectRoute = JSON.parse(localStorage.redirectRoute || "") 
+  if (redirectRoute) {
+      if (typeof redirectRoute == "object") {
+          route.replace(redirectRoute)
+      } else if (typeof redirectRoute === "string") {
+          route.replace({path: redirectRoute})
+      }
+  }
+  */
+}
+
+export const historyRoute = (to, from) => { // 记录了之后， 对于各种情况导致的重定向登录页的时候，等登录完成后可以回过去,当对于路由被拦截对此重定向之后回失效，所以不做此用； 或者说 可以做用户的页面活动（浏览记录之类的)
+    const maxRoute = 5 // 最多记录多少个路由
+    const tempData = { // 将本次所有路由对象保存起来包括from, to
+      name: to.name, params: to.params, query: to.query
+    }
+    let localRouter = JSON.parse(localStorage.routers || "[]") // 一开始的时候默认为空
+    if (localRouter.length) { // 如果有记录了 做下处理
+        if (localRouter[localRouter.length - 1].name === to.name) { // 上次保存的跟这一次保存的是同一个路由（处理用户的刷新问题)
+            localRouter.pop(); // 对于这种情况 我选择用后面的覆盖之前的上次的路由 所以先将上次路由弹出去
+        } else if (localRouter.length > maxRoute) { // 如果超过最大路由数, 先将最前面的弹出去
+            localRouter.shift()
+        }
+    }
+    if (!["agreement-detail"].includes(to.name)) { // 该页面是登录页的  协议页面 单独将该页面排除， 对于不想处理的页面可以来此添加
+        localRouter.push(tempData)
+    }
+    localStorage.routers = JSON.stringify(localRouter);// 序列化回localStorage
+}
+
+router.beforeEach((to, from, next) => { // 此处的next里的回调不会被调用，但next可以用来重定向
+    if (!checkIsLogined() && !["login", "logout"].includes(to.name)) { // 没有登录并且不是不是去特定页面（如登录页）的话就去登录
+      setRedirectRouter(to)
+      next({name: "login"}) // 跳去登录页
+    } else { // 否则进入该页面
+      next()
+    }
+})
+router.afterEach((to) => {
+    let { meta: { title = "" } = {} } = to;
+    if (title) {
+        document.title = title
+    }
+})
+router.beforeResolve((to, from, next) => {
+    // 该函数不能 next来重定向，传回调也没用，只能用来做一些记录之类的， 到了这里基本能确定该页面能进入了， 作用于跟afterEach 差不多，只是调用的时机不一样
+    historyRoute(to, from) // 记录路由历史
+    next()
+})
+
+// 访问统计，在路由加载完后发送该请求，　同时排除非线上环境以及刷新的统计
+let isRefresh = sessionStorage.getItem("isRefresh");
+window.isRefresh = isRefresh
+router.onReady(() => {
+    if (process.env.NODE_ENV == "production" && !isRefresh) {
+        (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?919bee0b8043447f1e2dca1cdf6jb0c4";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+        sessionStorage.setItem("isRefresh", 1)
+        })();
+    }
+    window.isRefresh = false;
+})
+```
+
+#### 全局混入的页面路由钩子函数
+```javascript
+let resolveRouter = (to, from, next) => {
+  if (["login", "perfect-userInfo", "logout"].includes(to.name)) { // 这几个页面不做任何处理 直接进入
+      next((vm) => {
+      vm.routerFrom = from.name // 在页面里记录下从哪个页面来， 此处有坑，比如在当前页面刷新下，那就该值就变成空了
+      vm.currentRouteName = to.name // 顺便存下当前页面的路由名称, 这个值可以去router实例上获取 router.currentRoute.name
+    })
+  } else { // 对于别的页面至少是登录了
+      Promise.all([refreshToken().catch(err => { throw { name: 'login' } }), // 刷新token 需不需要刷新在refreshToken函数里做, 刷新失败，抛出异常，让去重新登录
+      new Promise((resolve, reject) => {
+          if (getUserInfo().isActive) { // 虽然激活过  但是下面这个接口还是得调用一下，别的地方依赖于这个接口获取的别的信息，当前逻辑是无影响，但后面的能稍微快一点， checkIsActive是缓存过的 不会每次都去请求，可以放心
+           checkIsActive() 
+           resolve({ msg: "本地的缓存已经激活过了", isActive: true })
+          } else {
+            resolve(checkIsActive().then(res => {
+               let { isActive } = res;
+               setUserInfo({isActive})
+               return res
+           }).catch(err => { // 如果调用失败就  默认激活了吧 不然改成 reject({ name: 'perfect-userInfo' })
+               return { msg: "本地的缓存已经激活过了", isActive: true }
+           }))
+          }
+       })])
+      .then(([token, {isActive = false} = {}]) => {
+           if (isActive) { // 激活过了 就过
+            let routes = JSON.parse(localStorage.routers || '[]')
+              if (localStorage.redirectRoute) {
+                if (routes.length && ['login', 'agent-area'].includes(routes[routes.length-1].name)) {
+                  let redirectRoute = JSON.parse(localStorage.redirectRoute)
+                  localStorage.removeItem('redirectRoute')
+                  next(redirectRoute)
+                } else {
+                  next((vm) => {
+                    vm.routerFrom = from.name // 在页面里记录下从哪个页面来， 此处有坑，比如在当前页面刷新下，那就该值就变成空了
+                    vm.currentRouteName = to.name // 顺便存下当前页面的路由名称, 这个值可以去router实例上获取 router.currentRoute.name
+                  })
+                }
+              } else {
+                next((vm) => {
+                  vm.routerFrom = from.name // 在页面里记录下从哪个页面来， 此处有坑，比如在当前页面刷新下，那就该值就变成空了
+                  vm.currentRouteName = to.name // 顺便存下当前页面的路由名称, 这个值可以去router实例上获取 router.currentRoute.name
+                })
+              }
+           } else { // 没有激活过 就跳去完善信息页面激活
+              next({name: "perfect-userInfo", replace: true})
+           }
+       }).catch(err => { // 此处的异常 目前是来自于刷新token
+           setRedirectRouter(to)
+           next({name: err.name || 'login'})
+       })
+  }
+}
+
+export const shouldLoginMixin = {
+  beforeRouteEnter(to, from, next) {
+    resolveRouter(to, from, next)
+  },
+  beforeRouteLeave (to, from, next) { // 离开页面的时候记录下当前页面的滚动条的位置，好让下次进来滚动到上次记录的位置, 此处是记录在内存中强制刷新下，同样也会没有 所以有必要的话可以序列化到本地
+  // document.documentElement.scrollTop
+  from.meta.savedPosition = document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop || 0;
+  next()
+},
+mounted() {
+  this.isMounted = true;
+  wx.hideOptionMenu() // 微信隐藏菜单
+  setTimeout(() => { this.isMounted = false }, 0)
+}
+}
+```
 ### store里就是vux数据
 
 #### 一个store如下所示
@@ -752,3 +909,18 @@ new CopyWebpackPlugin([
 - 路由懒加载( component: () => /* 对应组件 */import("@/pageView/login/login"))
 - pwa
 - 注意代码书写（高校、简洁），主要是合理处理异步请求，通过[local/session]Storage，内存(vuex)等存储，减少没必要的异步请求，没有先手顺序的异步合并（至少不要强行顺序依赖）
+
+### 项目优化细节
+- 打包提取公共的代码
+- 全量引入的库　直接cdn，因为这些每次打包都不会变，版本也不常变，如vue vue-router xuex axios
+- 按需引入的第三方库，包括lodash, 以及支持按需加载的ui库，感觉应该单独给每个库打个包，因为变化（其中一个库的引入增减不会影响到别的不变的库）[现实中没这么处理]，要是可以样式也应该同样处理，把不常变的统一打包，经常变的单独打包
+- 对于某些只在特定的页面用的库不要全局直接cdn引入，比如极验证的js只在登录页面用到，那不应该全局(cdn)引入，因为别的页面都不需要它
+- vue 通过vue-loader处理之后.vue的文件会被编译掉，然后直接引vue的runtime版本，　gzip之后将近能少个10k；　注意　最后的main.js里能可能会new Vue({})，这里vue-loader不会去出处理它，所以需要手动将　template:'<App/>'　改成render函数　render (h) {return h(App)}，　不然引runtime版本会有问题
+- 路由懒加载( component: () => /* 对应组件 */import("@/pageView/login/login"))
+- 开启压缩混淆去掉注释（代码里估计有不少注释)
+- 开启gzip，br(需要在https(压缩率更高--比gzip高17％左右), 同时开启http2更好
+- 加上静态资源的缓存（强缓存配合协商缓存）
+- pwa
+- 业务逻辑的优化，　比如防止重复请求，短期内使用缓存（内存的缓存，[session/local]Storage的缓存等）
+- 合理利用钩子函数来做合理的请求，不用短时间内重复请求
+- 高性能的js
