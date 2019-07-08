@@ -109,21 +109,3 @@ sudo systemctl enable sshd --now 启用服务 并设置开机自启
     PasswordAuthentication no 开起来  禁止密码登录
     sudo systemctl restart sshd
 
-
-
-## Linux
-- 系统的安装（分区到安装系统，配置用户，管理权限）
-- Linux基本命令的使用
-- 熟悉nginx的配置和操作
-
-##  
-- html、css、js基础的掌握
-- vue源码
-- 项目的总结（vue、小程序)
-- 了解socket
-- webpack
-- 基于 mobx+react+koa+graphql的小项目demo
-
-## 其他
-- 数据结构与算法（c/c++)
-- rust语言
