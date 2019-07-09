@@ -4,8 +4,7 @@
 
 这里我选最简单的一种方式，手动dns认证
 >
-    # certbot certonly --preferred-challenges dns --manual  -d *.bysir.cn --server https://acme-v02.api.letsencrypt.org/directory
-    sudo certbot certonly  -d "*.freedrb.design" -d freedrb.design --manual --preferred-challenges dns --server https://acme-v02.api.letsencrypt.org/directory
+    #sudo certbot certonly  -d "*.freedrb.design" -d freedrb.design --manual --preferred-challenges dns --server https://acme-v02.api.letsencrypt.org/directory
 
 
     Are you OK with your IP being logged?
@@ -165,3 +164,8 @@ server {
     include ssl.conf;
 }
 ```
+
+- 申请的https通配符证书![https证书](./11.png)
+- http下的截图，js啥的gzip过了(nginx里没有强制重定向https)![](./22.png)
+- https下的首次加载 ![](./33.png)
+- https下的再次刷新(和上面对比，验证serviceWorker)![](./44.png)
