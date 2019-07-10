@@ -104,7 +104,8 @@ import { axios, getObject, phoneValidate, MyError, getUserInfo, setUserInfo } fr
 export const getAllCardOrderList = ({
     pageSize = 10,
     pageNum = 1,
-    statsDate = ""
+    statsDate = "",
+    ...others // 为了防止突然需要多加个字段，然而忘了来改这里的情况
 }) => {
     return axios.request({
         url: '/api/user/order/getAllCardOrderList',
@@ -112,7 +113,8 @@ export const getAllCardOrderList = ({
         data: {
             pageSize,
             pageNum,
-            statsDate
+            statsDate,
+            ...others
         }
     }).then(res => { // 转换下数据格式，后端不给做，但一个相同的列表需要展示两个不同接口（不同数据结构）的数据，只能选择转其中一个
         return res.map(item => Object.assign(getObject(item, ["userName", "levelName", "createdAt", ["cardNum", "count"], "id"]), {productName: "会员卡"}))
