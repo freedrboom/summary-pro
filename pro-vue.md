@@ -438,7 +438,7 @@ export const shouldLoginMixin = {
     },
     jumpMall(path) { // 跳到商城
       if (path.indexOf("http")===-1) {
-        let origin = location.origin.indexOf("//sales") !== -1 ? "http://mall.xc2018.com.cn" : "http://tmall.xc2018.com.cn"
+        let origin = location.origin.indexOf("//sales") !== -1 ? "http://test1.com.cn" : "http://test2.com.cn"
         window.location.href = path&&path[0]==='/'?`${origin}${path}` : `${origin}/${path}`;
       } else {
         window.location.href = path
@@ -624,7 +624,7 @@ router.onReady(() => {
     if (process.env.NODE_ENV == "production" && !isRefresh) {
         (function() {
         var hm = document.createElement("script");
-        hm.src = "https://hm.baidu.com/hm.js?919bee0b8043447f1e2dca1cdf6jb0c4";
+        hm.src = "https://hm.baidu.com/hm.js?919bghfb8043447f1e2dca1cdf6jb0c4";
         var s = document.getElementsByTagName("script")[0];
         s.parentNode.insertBefore(hm, s);
         sessionStorage.setItem("isRefresh", 1)
