@@ -36,6 +36,64 @@
 
     2 directories, 3 files
 
+
+对Axios的请求拦截和响应拦截
+```javascript
+import Axios from 'axios';
+import envConfig from '_conf/config';
+import { MyError } from "./log"
+import { login } from "./wx"
+import { tryGetToken } from "./localUser"
+const transform = (data = {}) => { // 用来解决application/x-www-form-urlencoded格式以及get参数的编码问题
+  return Object.entries(data || {}).reduce((params, [key, value]) => { 
+    return ![undefined, ''].includes(value) ? (params.append(key, value), params) : params
+  }, new URLSearchParams())
+}
+const service = Axios.create({ baseURL: envConfig.baseURL, timeout: 10000 })
+// 请求拦截器
+service.interceptors.request.use(
+  config => {
+    let { method = "get", type = "formData" } = config;
+    const token = tryGetToken()
+    token && token !== 'undefined'&&!(/^https?:\/\//.test(config.url)) && (config.headers['Authorization'] = "Bearer "+ token) 
+    //不想写 
+    //  if(T){
+    //    sdsf
+    //  }
+    if (method == "post") {
+      type !== 'json' && (config.transformRequest = [ transform ])
+      let typesObj = { json: 'application/json', formData: 'application/x-www-form-urlencoded' }
+      config.headers['Content-Type'] = typesObj[type] || typesObj['formData']
+    } else {
+      config.params = transform(config.data || {})
+      delete config.data
+    }
+    return config
+  },
+  error => Promise.reject(new MyError(error.message, 4, error.errno))
+)
+// 响应拦截器
+service.interceptors.response.use(
+  response => { // 响应拦截对后端特定的erro做重新登录
+    const { errno, errmsg, data } = response.data
+    if ([101, 403].includes(errno)) {
+      localStorage.clear();
+      login();
+      return new Promise(() => {});
+    } else {
+      return !errno ? data : Promise.reject(new MyError(errmsg, 4, errno))
+    }
+  },
+  error => {
+    const { status = "defaultError" } = error || error.response || {}
+    let errs = { 400: '请求错误', 404: `请求地址出错`, 408: '请求超时', 500: '服务器内部错误', 501: '服务未实现', 502: '网关错误', 503: '服务不可用', 504: '网关超时', 505: 'HTTP版本不受支持', defaultError: '未知错误' }
+    return Promise.reject(new MyError(errs[status] || errs['defaultError'], 0))
+  }
+)
+export { service as axios }
+
+```
+
 freedrb/index.js
 ```javascript
 import { axios, getObject, phoneValidate, MyError, getUserInfo, setUserInfo } from '@/global';
@@ -46,7 +104,8 @@ import { axios, getObject, phoneValidate, MyError, getUserInfo, setUserInfo } fr
 export const getAllCardOrderList = ({
     pageSize = 10,
     pageNum = 1,
-    statsDate = ""
+    statsDate = "",
+    ...others // 为了防止突然需要多加个字段，然而忘了来改这里的情况
 }) => {
     return axios.request({
         url: '/api/user/order/getAllCardOrderList',
@@ -54,7 +113,8 @@ export const getAllCardOrderList = ({
         data: {
             pageSize,
             pageNum,
-            statsDate
+            statsDate,
+            ...others
         }
     }).then(res => { // 转换下数据格式，后端不给做，但一个相同的列表需要展示两个不同接口（不同数据结构）的数据，只能选择转其中一个
         return res.map(item => Object.assign(getObject(item, ["userName", "levelName", "createdAt", ["cardNum", "count"], "id"]), {productName: "会员卡"}))
