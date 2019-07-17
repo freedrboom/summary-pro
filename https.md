@@ -118,6 +118,21 @@ nginx 配置如下
         include conf/*.conf;
     }
 
+cros.conf 跨域设置内容
+```
+add_header 'Access-Control-Allow-Origin' $http_origin;
+add_header 'Access-Control-Allow-Credentials' 'true';
+add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+add_header 'Access-Control-Allow-Headers' 'DNT,web-token,app-token,Authorization,Accept,Origin,Keep-Alive,User-Agent,X-Mx-ReqToken,X-Data-Type,X-Auth-Token,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range';
+add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
+if ($request_method = 'OPTIONS') {
+        add_header 'Access-Control-Max-Age' 1728000;
+        add_header 'Content-Type' 'text/plain; charset=utf-8';
+        add_header 'Content-Length' 0;
+        return 204;
+}
+```
+
 conf/default.conf内容如下
 >
     server {
