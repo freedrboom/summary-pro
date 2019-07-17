@@ -9,4 +9,4 @@
 - [经常需要在内存里维护一个可操作的缓存（一个对象）](./cache.md)
 - [优雅的处理微信分享的记录](./sharewx.md)
 - [vue的使用项目总结](./pro-vue.md)
-- [基于koa、mongoose、jw的graphql-demo](https://github.com/freedrboom/blog-node)
+- [基于koa、mongoose、jwt的graphql-demo](https://github.com/freedrboom/blog-node)
